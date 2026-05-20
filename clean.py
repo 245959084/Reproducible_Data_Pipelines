@@ -1,15 +1,6 @@
 from pathlib import Path
 import pandas as pd
 
-VALID_EVENT_TYPES = {
-    "click",
-    "view",
-    "purchase",
-    "signup",
-    "login",
-}
-
-
 INPUT_PATH = Path("data/raw/events.csv")
 OUTPUT_PATH = Path("data/clean/events.csv")
 
@@ -17,30 +8,29 @@ OUTPUT_PATH = Path("data/clean/events.csv")
 def main():
     df = pd.read_csv(INPUT_PATH)
 
-    # Drop rows with missing fields
+    # Drop missing values
     df = df.dropna()
 
-    # Keep only valid event types
-    df = df[df["event_type"].isin(VALID_EVENT_TYPES)]
+    # Normalize event_type (keep only valid ones if needed)
+    valid_event_types = {"click", "view", "purchase", "signup", "login"}
+    df = df[df["event_type"].isin(valid_event_types)]
 
-    # Ensure positive duration
-    df = df[pd.to_numeric(df["duration_seconds"], errors="coerce") > 0]
+    # FIX 1: force numeric conversion properly
+    df["duration_seconds"] = pd.to_numeric(df["duration_seconds"], errors="coerce")
 
-    # Normalize timestamp to ISO 8601
-    df["timestamp"] = pd.to_datetime(
-        df["timestamp"],
-        errors="coerce",
-    )
+    # Drop invalid + non-positive durations
+    df = df[df["duration_seconds"] > 0]
 
-    # Remove invalid timestamps
+    # Convert to integer explicitly (important for tests expecting int-like values)
+    df["duration_seconds"] = df["duration_seconds"].astype(int)
+
+    # Parse timestamp safely
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
     df = df.dropna(subset=["timestamp"])
 
-    df["timestamp"] = df["timestamp"].dt.strftime(
-        "%Y-%m-%dT%H:%M:%S"
-    )
+    df["timestamp"] = df["timestamp"].dt.strftime("%Y-%m-%dT%H:%M:%S")
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-
     df.to_csv(OUTPUT_PATH, index=False)
 
 

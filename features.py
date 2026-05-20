@@ -11,10 +11,8 @@ def main():
 
     timestamps = pd.to_datetime(df["timestamp"])
 
-    # duration_minutes feature
-    df["duration_minutes"] = (
-        df["duration_seconds"] / 60
-    )
+    df["duration_seconds"] = pd.to_numeric(df["duration_seconds"])
+    df["duration_minutes"] = df["duration_seconds"] / 60
 
     # weekday feature
     df["weekday"] = timestamps.dt.day_name()
